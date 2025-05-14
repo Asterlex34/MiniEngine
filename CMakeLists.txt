@@ -1,47 +1,60 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.16)
 
+project(MiniEngine)
+
+# Use modern C++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-project(MiniEngine)
+find_package(SDL2 REQUIRED)
 
-option(PLATFORM_WINDOWS "Build for windows?" ON)
+add_library(MiniEngine STATIC)
 
-# Only Defined when building the engine itself.
-list(APPEND COMPILE_DEFS "MINIENGINE_BUILD")
+# Add include directories for core and platform-specific headers
+target_include_directories(MiniEngine
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/src/core
+        ${SDL2_INCLUDE_DIRS}  # Add SDL2 include directories
+)
 
-# If MSVC compiler is used, define _CRT_SECURE_NO_WARNINGS to suppress the std::localtime() warning
-if(MSVC)
-list(APPEND COMPILE_DEFS "_CRT_SECURE_NO_WARNINGS")
+# Platform-specific handling
+if(WIN32)
+    target_compile_definitions(MiniEngine PRIVATE PLATFORM_WINDOWS)
+    target_include_directories(MiniEngine PRIVATE ${PROJECT_SOURCE_DIR}/src/core/platform/Windows)
+
+    # Add platform-specific source files for Windows
+    target_sources(MiniEngine PRIVATE
+        src/core/platform/Windows/WindowsWindow.cpp
+        src/core/platform/Windows/WindowsWindow.h
+    )
+
+    # Link against Windows libraries
+    target_link_libraries(MiniEngine PUBLIC gdi32 user32)
+
+elseif(UNIX)
+    target_compile_definitions(MiniEngine PRIVATE PLATFORM_LINUX)
+    target_include_directories(MiniEngine PRIVATE ${PROJECT_SOURCE_DIR}/src/core/platform/Linux)
+
+    # Add platform-specific source files for Linux
+    target_sources(MiniEngine PRIVATE
+        src/core/platform/Linux/LinuxWindow.cpp
+        src/core/platform/Linux/LinuxWindow.h
+    )
+
+    # Link against X11 for Linux
+    target_link_libraries(MiniEngine PUBLIC X11)
 endif()
 
+# Add SDL2 to the link libraries
+target_link_libraries(MiniEngine PUBLIC SDL2::SDL2)
 
-if(PLATFORM_WINDOWS)
-    list(APPEND COMPILE_DEFS "PLATFORM_WINDOWS")
-    list(APPEND INCLUDES "${PROJECT_SOURCE_DIR}/src/Platforms/Windows")
-    list(APPEND SOURCE_FILES src/Platforms/Windows/WindowsWindow.cpp src/Platforms/Windows/WindowsWindow.h)
-    list(APPEND LIBS gdi32 user32)
-else()
-    list(APPEND INCLUDES "${PROJECT_SOURCE_DIR}/src/Platforms/Linux")
-    list(APPEND SOURCE_FILES src/Platforms/Linux/LinuxWindow.cpp src/Platforms/Linux/LinuxWindow.h)
-    list(APPEND LIBS X11)
-endif()
+# Add the core engine source files
+file(GLOB_RECURSE ENGINE_SRC CONFIGURE_DEPENDS
+    src/core/*.cpp
+    src/core/*.h
+)
 
-list(APPEND SOURCE_FILES src/Core/Game.cpp src/Core/Game.h src/Core/EntryPoint.h src/Core/MiniWindow.h src/Core/MiniTime.h src/Core/MiniTime.cpp
-                         src/Core/Log/MiniLogger.cpp src/Core/Log/MiniLogger.h src/Core/Log/Log.cpp src/Core/Log/Log.h
-                         src/Core/Events/Event.h src/Core/Events/EventHandler.h src/Core/Events/EventHandler.cpp
-                         src/Core/Events/KeyEvents.h src/Core/Events/MouseEvents.h src/Core/Events/WindowEvents.h)
+# Add the source files to the target
+target_sources(MiniEngine PRIVATE ${ENGINE_SRC})
 
-add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE ${COMPILE_DEFS} PRIVATE PROJECT_DIR="${PROJECT_SOURCE_DIR}/")
-target_include_directories(${PROJECT_NAME} PUBLIC ${INCLUDES})
-target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS})
-
-project(TestGame)
-set(SOURCE_FILES TestGame/TestGame.cpp src/Core/MiniEngine.h)
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE PROJECT_DIR="${PROJECT_SOURCE_DIR}/${PROJECT_NAME}/" PRIVATE "_CRT_SECURE_NO_WARNINGS")
-set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})
-target_include_directories(${PROJECT_NAME} PUBLIC src/Core)
-target_link_libraries(${PROJECT_NAME} PRIVATE MiniEngine)
