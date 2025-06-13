@@ -57,4 +57,3 @@ file(GLOB_RECURSE ENGINE_SRC CONFIGURE_DEPENDS
 
 # Add the source files to the target
 target_sources(MiniEngine PRIVATE ${ENGINE_SRC})
-

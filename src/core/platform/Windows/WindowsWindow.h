@@ -23,15 +23,16 @@ namespace MiniEngine
             virtual uint32_t GetHeight() const { return m_Data.Height; }
         
         private:
-            bool Init();
+            bool Init(const WindowProperties& props);
             bool ProcessMessages();
 
         private:
-            
+            HINSTANCE hinst;
+            HWND hwndMain;
             struct windowData
             {
                 const char* Title;
-                uint36_t Height, Width;
+                uint32_t Height, Width;
             } m_Data;
     };
 }
