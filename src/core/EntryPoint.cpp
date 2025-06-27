@@ -1,4 +1,4 @@
-#include "Engine.h"
+#include "./engine/Engine.h"
 #include <iostream>
 
 int main()
@@ -8,11 +8,14 @@ int main()
     {
         engine.Run();
     }
-    catch (std::exception e)
+    catch (std::exception& e)
     {
         std::cout << e.what();
         return EXIT_FAILURE;
     }
+
+    std::cout << "Press Enter to exit...";
+    std::cin.get();
 
     return EXIT_SUCCESS;
 }

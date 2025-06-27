@@ -2,22 +2,95 @@
 #define WINDOWSWINDOW_CPP
 
 #include "WindowsWindow.h"
+#include "../../../../dependencies/thirdparty/glad/include/glad/gl.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include <Windows.h>
+#ifdef __cplusplus
+}
+#endif
 
-// Minimal dummy window procedure since I don't want event handling as of now
-LRESULT CALLBACK DummyWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    return DefWindowProc(hwnd, msg, wParam, lParam);
+    MiniEngine::WindowsWindow* windowPtr = reinterpret_cast<MiniEngine::WindowsWindow*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+
+    switch (msg)
+    {
+        case WM_CREATE:
+            {
+                /* OPENGL FRAMEBUFFER */
+                PIXELFORMATDESCRIPTOR pfd =
+		        {
+			        sizeof(PIXELFORMATDESCRIPTOR),
+			        1,
+			        PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER,       // Flags
+			        PFD_TYPE_RGBA,                                                    // The kind of framebuffer. RGBA or palette.
+			        32,                                                               // Colordepth of the framebuffer
+			        0, 0, 0, 0, 0, 0,                                                 // rape blacks 
+			        0,
+			        0,
+			        0,
+
+			        0, 0, 0, 0,
+			        24,                                                               // Number of bits for the depthbuffer
+			        8,                                                                // Number of bits for the stencilbuffer
+			        0,                                                                // Number of Aux buffers in the framebuffer.
+			        PFD_MAIN_PLANE,
+			        0,
+			        0, 0, 0
+		        };
+
+                HDC hdc = GetDC(hWnd);
+                int pixelFormatNumber = ChoosePixelFormat(hdc, &pfd);
+
+                SetPixelFormat(hdc, pixelFormatNumber, &pfd);
+                HGLRC HandleToOpenglContext = wglCreateContext(hdc);
+                wglMakeCurrent(hdc, HandleToOpenglContext);
+            }
+
+        case WM_CLOSE:
+            if (MessageBox(hWnd, "Really Quit?", "MiniEngine", MB_OKCANCEL) == IDOK)
+            {
+                DestroyWindow(hWnd);
+            }
+            return 0;
+
+        case WM_DESTROY: 
+            PostQuitMessage(0);
+            return 0;
+        
+        case WM_PAINT:
+            {
+                if (windowPtr)
+                {
+                    windowPtr->OnDraw();
+                }
+                return 0;
+            }
+        
+        case WM_SIZE:
+            {
+                int width = LOWORD(lParam);
+                int height = HIWORD(lParam);
+
+                if (windowPtr)
+                {
+                    windowPtr->SetSize(width, height);
+                    InvalidateRect(hwnd, nullptr, TRUE);
+                }
+
+                return 0;
+            }
+
+        default:
+            return DefWindowProc(hWnd, msg, wParam, lParam);
+    }
 }
 
 namespace MiniEngine
 {
-    std::unique_ptr<WindowsWindow> MiniWindow::Create(const WindowProperties& props)
-    {
-        return std::make_unique<WindowsWindow>(props);
-    }
-
     WindowsWindow::WindowsWindow(const WindowProperties& windowProps)
     {
         Init(windowProps);
@@ -25,18 +98,19 @@ namespace MiniEngine
 
     bool WindowsWindow::Init(const WindowProperties& windowProps)
     {
-        m_Data.height = windowProps.Height;
-        m_Data.width = windowProps.Width;
-        m_Data.title = windowProps.Title;
+        m_Data.Height = windowProps.Height;
+        m_Data.Width = windowProps.Width;
+        m_Data.Title = windowProps.Title;
         hinst = GetModuleHandle(nullptr);
         static bool classRegistered = false;
 
         if (!classRegistered)
         {
             WNDCLASS wc = {};
-            wc.lpfnWndProc   = DummyWndProc;
+            wc.lpfnWndProc   = WndProc;
             wc.hInstance     = hinst;
             wc.lpszClassName = "MainEngineWindow";
+            wc.style = CS_OWNDC;
 
             if (!RegisterClass(&wc))
             {
@@ -46,29 +120,74 @@ namespace MiniEngine
             classRegistered = true;
         }
 
-        hwndMain = CreateWindowEx( 
-            0,                     // no extended styles YET :3           
-            "MainEngineWindow",    // class name                   
-            m_Data.title,          // window name                  
-            WS_OVERLAPPEDWINDOW,   // overlapped window                 
-            CW_USEDEFAULT,         // default horizontal position  
-            CW_USEDEFAULT,         // default vertical position    
-            m_Data.width,          // default width                
-            m_Data.height,         // default height               
-            (HWND) nullptr,        // no parent Window
-            (HMENU) nullptr,       // class menu used              
-            hinst,                 // instance handle              
-            nullptr                // no window creation data 
+        hWnd = CreateWindowEx( 
+            0,                   // Optional Window styling
+            "MainEngineWindow",  // Window Class                  
+            m_Data.Title,        // Window Text                   
+            WS_OVERLAPPEDWINDOW, // Window Style
+            // Size and Position                 
+            CW_USEDEFAULT, CW_USEDEFAULT, m_Data.Width, m_Data.Height,                     
+            (HWND) nullptr,      // Parent Window 
+            (HMENU) nullptr,     // Menu 
+            hinst,               // Instance Handle           
+            nullptr              // Additional application data
         );                      
 
-        if (!hwndMain) { return false; }
+        if (!hWnd) { return false; }
+        SetWindowLongPtr(hWnd, GWLP_USERDATA, (LONG_PTR)this);   // attach a uint64 ptr 
         return true;
     }
 
     void WindowsWindow::Show()
     {
-        ShowWindow(hwndMain, SW_SHOW);
-        UpdateWindow(hwndMain);
+        ShowWindow(hWnd, SW_SHOW);
+        UpdateWindow(hWnd);
+    }
+
+    void WindowsWindow::OnDraw()
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+        
+        int cx = m_Data.Width/2;
+        int cy = m_Data.Height/2;
+        int radius = 50;
+
+        Ellipse(hdc, cx - radius, cy - radius, cx + radius, cy + radius);
+        EndPaint(hWnd, &ps);
+    }
+
+    void WindowsWindow::ProcessMessages()
+    {
+        MSG msg;
+        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
+        {
+            if (msg.message == WM_QUIT)
+            {
+                m_shouldClose = true;
+                break;
+            }
+            
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+        }
+    }
+
+    void WindowsWindow::SetSize(int width, int height)
+    {
+        m_Data.Width = width;
+        m_Data.Height = height;
+    }
+
+
+    void MiniEngine::WindowsWindow::OnUpdate()
+    {
+        // empty for now
+    }
+
+    MiniEngine::WindowsWindow::~WindowsWindow()
+    {
+        // empty for now
     }
 }
 

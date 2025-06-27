@@ -7,53 +7,78 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-find_package(SDL2 REQUIRED)
+# --------------------------------------------------------------------
+# MiniEngine Static Library
+# --------------------------------------------------------------------
 
 add_library(MiniEngine STATIC)
 
-# Add include directories for core and platform-specific headers
-target_include_directories(MiniEngine
-    PUBLIC
-        ${PROJECT_SOURCE_DIR}/src/core
-        ${SDL2_INCLUDE_DIRS}  # Add SDL2 include directories
+# Include core engine headers
+target_include_directories(MiniEngine PUBLIC
+    ${PROJECT_SOURCE_DIR}/src/core
 )
 
-# Platform-specific handling
+# Source files from core
+file(GLOB_RECURSE ENGINE_SRC CONFIGURE_DEPENDS
+    ${PROJECT_SOURCE_DIR}/src/core/*.cpp
+)
+
+target_sources(MiniEngine PRIVATE ${ENGINE_SRC})
+
+# --------------------------------------------------------------------
+# Platform-Specific (Windows)
+# --------------------------------------------------------------------
+
 if(WIN32)
     target_compile_definitions(MiniEngine PRIVATE PLATFORM_WINDOWS)
-    target_include_directories(MiniEngine PRIVATE ${PROJECT_SOURCE_DIR}/src/core/platform/Windows)
 
-    # Add platform-specific source files for Windows
+    target_include_directories(MiniEngine PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/core/platform/Windows
+    )
+
     target_sources(MiniEngine PRIVATE
         src/core/platform/Windows/WindowsWindow.cpp
-        src/core/platform/Windows/WindowsWindow.h
     )
 
-    # Link against Windows libraries
     target_link_libraries(MiniEngine PUBLIC gdi32 user32)
+endif()
 
-elseif(UNIX)
+# --------------------------------------------------------------------
+# Platform-Specific (Linux)
+# --------------------------------------------------------------------
+
+if(LINUX)
     target_compile_definitions(MiniEngine PRIVATE PLATFORM_LINUX)
-    target_include_directories(MiniEngine PRIVATE ${PROJECT_SOURCE_DIR}/src/core/platform/Linux)
 
-    # Add platform-specific source files for Linux
-    target_sources(MiniEngine PRIVATE
-        src/core/platform/Linux/LinuxWindow.cpp
-        src/core/platform/Linux/LinuxWindow.h
+    target_include_directories(MiniEngine PRIVATE_HEADER
+        ${PROJECT_SOURCE_DIR}/src/core/platform/Linux
     )
 
-    # Link against X11 for Linux
+    target_sources(MiniEngine PRIVATE_HEADER
+        src/core/platform/Linux/LinuxWindow.cpp
+    )
+
     target_link_libraries(MiniEngine PUBLIC X11)
 endif()
 
-# Add SDL2 to the link libraries
-target_link_libraries(MiniEngine PUBLIC SDL2::SDL2)
+# --------------------------------------------------------------------
+# GLAD (local in dependencies/thirdparty/glad)
+# --------------------------------------------------------------------
 
-# Add the core engine source files
-file(GLOB_RECURSE ENGINE_SRC CONFIGURE_DEPENDS
-    src/core/*.cpp
-    src/core/*.h
+add_subdirectory(dependencies/thirdparty/glad)
+
+# --------------------------------------------------------------------
+# Application Executable
+# --------------------------------------------------------------------
+
+add_executable(MiniEngineApp src/core/EntryPoint.cpp)
+
+target_include_directories(MiniEngineApp PRIVATE
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/dependencies/thirdparty/glad/include
 )
 
-# Add the source files to the target
-target_sources(MiniEngine PRIVATE ${ENGINE_SRC})
+target_link_libraries(MiniEngineApp PRIVATE
+    MiniEngine
+    glad::glad
+)
