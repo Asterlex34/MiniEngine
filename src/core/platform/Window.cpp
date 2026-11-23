@@ -5,17 +5,17 @@
 #include <memory>
 
 #if defined(_WIN32)
-#include "platform/Windows/WindowsWindow.h"
+#include "./Windows/WindowsWindow.h"
 #elif defined(__linux__)
-#include "platform/Linux/LinuxWindow.h"
+#include "./Linux/LinuxWindow.h"
 #else
 #error Unsupported platform
 #endif
 
-namespace MiniEngine
-{
-    std::unique_ptr<MiniWindow> MiniWindow::Create(const WindowProperties& props)
-    {
+
+namespace MiniEngine {
+    std::unique_ptr<MiniWindow> MiniWindow::Create(const WindowProperties& props) {
+        // Pure aura macro for device handling
         #if defined(_WIN32)
             return std::make_unique<WindowsWindow>(props);
         #elif defined(__linux__)

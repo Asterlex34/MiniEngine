@@ -4,6 +4,15 @@
 #include "../Window.h"
 #include <memory>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+#include <X11/X.h>
+#ifdef __cplusplus
+}
+#endif
+
+
 namespace MiniEngine
 {
     class LinuxWindow : public MiniEngine::MiniWindow
@@ -22,10 +31,14 @@ namespace MiniEngine
             virtual bool shouldClose() const { return m_shouldClose; }
         
         private:
-            bool Init(const WindowProperties& props);
-            bool ProcessMessages();
-
+            bool Init(const WindowProperties& props) override;
+            void ProcessMessages() override;
+        
         private:
+            // Linux X11 specific stuff
+
+
+
             bool m_shouldClose = false; 
             struct windowData
             {

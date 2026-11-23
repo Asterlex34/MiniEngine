@@ -1,15 +1,26 @@
 #Directories
 bin/
-.vs/
+build/
+.vscode/
 CMakeFiles/
-Debug/
 MiniEngine.dir/
 x64/
+testing/
 
 #Extensions
 **.vcxproj
 **.filters
 **.cmake
 CMakeCache.txt
+cmake_install.cmake
 **.sln
 **.user
+
+#Compiled binaries and object files
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.exe
+*.pdb

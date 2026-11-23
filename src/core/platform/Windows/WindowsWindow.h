@@ -1,6 +1,9 @@
 #ifndef WINDOWSWINDOW_H
 #define WINDOWSWINDOW_H
 
+#include "../Window.h"
+#include <memory>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -9,13 +12,9 @@ extern "C" {
 }
 #endif
 
-#include "../Window.h"
-#include <memory>
 
-namespace MiniEngine
-{
-    class WindowsWindow : public MiniEngine::MiniWindow
-    {
+namespace MiniEngine {
+    class WindowsWindow : public MiniEngine::MiniWindow {
         public:
             WindowsWindow(const WindowProperties& props);
             virtual ~WindowsWindow();
@@ -30,20 +29,22 @@ namespace MiniEngine
             virtual bool shouldClose() const { return m_shouldClose; }
         
         private:
-            bool Init(const WindowProperties& props);
-            void ProcessMessages();
-
+            bool Init(const WindowProperties& props) override;
+            void ProcessMessages() override;
+        
         private:
+            // Windows WIN32 specific stuff
+            HDC hdc = nullptr;
+            HGLRC hglrc = nullptr;
             HINSTANCE hinst;
             HWND hWnd;
+
             bool m_shouldClose = false; 
-            struct windowData
-            {
+            struct windowData {
                 const char* Title;
                 uint32_t Height, Width;
             } m_Data;
         
-
         friend class Engine;
     };
 }

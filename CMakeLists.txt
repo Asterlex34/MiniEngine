@@ -1,84 +1,41 @@
-cmake_minimum_required(VERSION 3.16)
-
+cmake_minimum_required(VERSION 3.15)
 project(MiniEngine)
 
-# Use modern C++17
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
 
-# --------------------------------------------------------------------
-# MiniEngine Static Library
-# --------------------------------------------------------------------
+# Collect all CPP files recursively
+file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp")
+list(FILTER SOURCES EXCLUDE REGEX ".*/CMakeFiles/.*")
 
-add_library(MiniEngine STATIC)
+add_executable(MiniEngine ${SOURCES})
 
-# Include core engine headers
-target_include_directories(MiniEngine PUBLIC
-    ${PROJECT_SOURCE_DIR}/src/core
+# Include GLAD header
+target_include_directories(MiniEngine PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/thirdparty/glad/include"
 )
 
-# Source files from core
-file(GLOB_RECURSE ENGINE_SRC CONFIGURE_DEPENDS
-    ${PROJECT_SOURCE_DIR}/src/core/*.cpp
+# Link GLAD source file
+target_sources(MiniEngine PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/dependencies/thirdparty/glad/src/gl.c"
 )
 
-target_sources(MiniEngine PRIVATE ${ENGINE_SRC})
-
-# --------------------------------------------------------------------
-# Platform-Specific (Windows)
-# --------------------------------------------------------------------
-
+# Platform-specific linking
 if(WIN32)
-    target_compile_definitions(MiniEngine PRIVATE PLATFORM_WINDOWS)
+    target_link_libraries(MiniEngine PRIVATE opengl32)
+elseif(UNIX)
+    find_package(X11 REQUIRED)
+    if(X11_FOUND)
+        target_include_directories(MiniEngine PRIVATE ${X11_INCLUDE_DIR})
+        target_link_libraries(MiniEngine PRIVATE ${X11_LIBRARIES})
+    endif()
 
-    target_include_directories(MiniEngine PRIVATE
-        ${PROJECT_SOURCE_DIR}/src/core/platform/Windows
-    )
-
-    target_sources(MiniEngine PRIVATE
-        src/core/platform/Windows/WindowsWindow.cpp
-    )
-
-    target_link_libraries(MiniEngine PUBLIC gdi32 user32)
+    # Find OpenGL on Linux por favor find it
+    find_package(OpenGL REQUIRED)
+    if(OPENGL_FOUND)
+        target_include_directories(MiniEngine PRIVATE ${OPENGL_INCLUDE_DIR})
+        target_link_libraries(MiniEngine PRIVATE ${OPENGL_LIBRARIES})
+    endif()
 endif()
 
-# --------------------------------------------------------------------
-# Platform-Specific (Linux)
-# --------------------------------------------------------------------
-
-if(LINUX)
-    target_compile_definitions(MiniEngine PRIVATE PLATFORM_LINUX)
-
-    target_include_directories(MiniEngine PRIVATE_HEADER
-        ${PROJECT_SOURCE_DIR}/src/core/platform/Linux
-    )
-
-    target_sources(MiniEngine PRIVATE_HEADER
-        src/core/platform/Linux/LinuxWindow.cpp
-    )
-
-    target_link_libraries(MiniEngine PUBLIC X11)
-endif()
-
-# --------------------------------------------------------------------
-# GLAD (local in dependencies/thirdparty/glad)
-# --------------------------------------------------------------------
-
-add_subdirectory(dependencies/thirdparty/glad)
-
-# --------------------------------------------------------------------
-# Application Executable
-# --------------------------------------------------------------------
-
-add_executable(MiniEngineApp src/core/EntryPoint.cpp)
-
-target_include_directories(MiniEngineApp PRIVATE
-    ${PROJECT_SOURCE_DIR}/src
-    ${PROJECT_SOURCE_DIR}/dependencies/thirdparty/glad/include
-)
-
-target_link_libraries(MiniEngineApp PRIVATE
-    MiniEngine
-    glad::glad
-)
+# I hate cmake files claude scratch my nuts a lil

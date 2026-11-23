@@ -8289,7 +8289,7 @@ int gladLoadGLUserPtr( GLADuserptrloadfunc load, void *userptr) {
     glad_gl_load_GL_NV_gpu_multicast(load, userptr);
     glad_gl_load_GL_NV_gpu_program4(load, userptr);
     glad_gl_load_GL_NV_gpu_program5(load, userptr);
-    glad_gl_load_GL_NV_gpu_shader5(load, userptr);
+    glad_gl_load_GL_NV_gpu_shader5(load, userptr);  
     glad_gl_load_GL_NV_half_float(load, userptr);
     glad_gl_load_GL_NV_internalformat_sample_query(load, userptr);
     glad_gl_load_GL_NV_memory_attachment(load, userptr);

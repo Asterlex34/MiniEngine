@@ -2,12 +2,11 @@
 #define ENGINE_H
 
 #include <memory>
-#include "./platform/Window.h"
+#include "../platform/Window.h"
 
-namespace MiniEngine
-{
-    class Engine 
-    {
+
+namespace MiniEngine {
+    class Engine {
         public:
             void Run();
         
@@ -20,7 +19,7 @@ namespace MiniEngine
             std::unique_ptr<MiniEngine::MiniWindow> m_Window;
             bool m_Running = true;
             float m_StartTime = 0.0f;
-        };
+    };
 }
 
 #endif /* engine_h */
